@@ -231,4 +231,30 @@ class SignaturePadToImage {
 		return $rval;
 	}
 
+/**
+ * Output image using imagepng()
+ *
+ * @param filename string [optional] <p>
+ * 	The path to save the file to. If not set or NULL, the raw image
+ * 	stream will be outputted directly.
+ * </p>
+ * @param quality int [optional] <p>
+ * 	Compression level: from 0 (no compression) to 9.
+ * </p>
+ * @param filters int [optional] <p>
+ * 	Allows reducing the PNG file size. It is a bitmask field which may be
+ * 	set to any combination of the PNG_FILTER_XXX constants. PNG_NO_FILTER or PNG_ALL_FILTERS may also be
+ * 	used to respectively disable or activate all filters.
+ * </p>
+ * @return bool Returns TRUE on success or FALSE on failure.
+ */
+	public function outputImage( $filename = null, $quality = null, $filters = null ) {
+		$isOutput = FALSE;
+		if ( $this->image ) {
+			header('Content-Type: image/png');
+			$isOutput = imagepng( $this->image, $filename, $quality, $filters );
+		}
+		return $isOutput;
+	}
+
 }
