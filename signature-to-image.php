@@ -15,6 +15,55 @@
 class SignaturePadToImage {
 
 /**
+ * The colour fill for the background of the image.
+ * Defaults to array( 0xff, 0xff, 0xff )
+ *
+ * @var array hex red, hex green, hex blue
+ */
+	public $bgColour = array (0xff, 0xff, 0xff );
+
+/**
+ * Multiplier for internal image size, helps create nice antialiased return image
+ * Defaults to 12
+ *
+ * @var int
+ */
+	public $drawMultiplier = 12;
+
+/**
+ * Determines the final output height of the image.
+ * Defaults to 55
+ *
+ * @var int
+ */
+	public $imageHeight = 55;
+
+/**
+ * Determines the final output width of the image.
+ * Defaults to 198
+ *
+ * @var int
+ */
+	public $imageWidth = 198;
+
+
+/**
+ * Colour of the drawing ink.
+ * Defaults to array( 0x14, 0x53, 0x94 )
+ *
+ * @var array hex red, hex green, hex blue
+ */
+	public $penColour = array( 0x14, 0x53, 0x94 );
+
+/**
+ * Thickness, in pixels, of the drawing pen
+ * Defaults to 2
+ *
+ * @var int
+ */
+	public $penWidth = 2;
+
+/**
  *	Accepts a signature created by signature pad in Json format
  *	Converts it to an image resource
  *	The image resource can then be changed into png, jpg whatever PHP GD supports
@@ -30,14 +79,13 @@ class SignaturePadToImage {
  *
  *	@return	object
  */
-	function sigJsonToImage($json, $options = array())
-	{
+	public function sigJsonToImage($json, $options = array()) {
 		$defaultOptions = array(
-			'imageSize' => array(198, 55)
-			,'bgColour' => array(0xff, 0xff, 0xff)
-			,'penWidth' => 2
-			,'penColour' => array(0x14, 0x53, 0x94)
-			,'drawMultiplier'=> 12
+			'imageSize' => array( $this->imageWidth, $this->imageHeight ),
+			'bgColour' => $this->bgColour,
+			'penWidth' => $this->penWidth,
+			'penColour' => $this->penColour,
+			'drawMultiplier'=> $this->drawMultiplier,
 		);
 
 		$options = array_merge($defaultOptions, $options);
@@ -75,8 +123,7 @@ class SignaturePadToImage {
  *
  *	@return	void
  */
-	function drawThickLine($img, $startX, $startY, $endX, $endY, $colour, $thickness)
-	{
+	private function drawThickLine($img, $startX, $startY, $endX, $endY, $colour, $thickness) {
 		$angle = (atan2(($startY - $endY), ($endX - $startX)));
 
 		$dist_x = $thickness * (sin($angle));
