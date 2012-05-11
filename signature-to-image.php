@@ -15,6 +15,91 @@
 class SignaturePadToImage {
 
 /**
+ * Determine max width/height from Signature Pad signature data.
+ * Defaults to false.
+ *
+ * @var bool True finds max, false uses SignaturePadToImage::imageWidth and SignaturePadToImage::imageHeight
+ * @see SignaturePadToImage::getSizeFromSignatureData()
+ */
+	public $autoSize = FALSE;
+
+/**
+ * Last successfully created image or NULL if create failed
+ *
+ * @var resource an image resource
+ */
+	private $image = NULL;
+
+/**
+ * The colour fill for the background of the image.
+ * Defaults to array( 0xff, 0xff, 0xff )
+ *
+ * @var array hex red, hex green, hex blue
+ */
+	public $bgColour = array( 0xff, 0xff, 0xff );
+
+/**
+ * Multiplier for internal image size, helps create nice antialiased return image
+ * Defaults to 12
+ *
+ * @var int
+ */
+	public $drawMultiplier = 12;
+
+/**
+ * Determines the final output height of the image.
+ * Defaults to 55
+ *
+ * @var int
+ */
+	public $imageHeight = 55;
+
+/**
+ * Determines the final output width of the image.
+ * Defaults to 198
+ *
+ * @var int
+ */
+	public $imageWidth = 198;
+
+
+/**
+ * Colour of the drawing ink.
+ * Defaults to array( 0x14, 0x53, 0x94 )
+ *
+ * @var array hex red, hex green, hex blue
+ */
+	public $penColour = array( 0x14, 0x53, 0x94 );
+
+/**
+ * Thickness, in pixels, of the drawing pen
+ * Defaults to 2
+ *
+ * @var int
+ */
+	public $penWidth = 2;
+
+/**
+ * Sets options on construct.
+ *
+ * @param array $options An array of optional key => val.
+ * 	autoSize,
+ * 	bgColour,
+ * 	drawMulitplier,
+ * 	imageHeight,
+ * 	imageWidth,
+ * 	penColour,
+ * 	penWidth
+ */
+	public function __construct( $options ) {
+		foreach ( $options as $k => $v ) {
+			if ( isset( $this->{$k} ) ) {
+				$this->{$k} = $v;
+			}
+		}
+	}
+
+/**
  *	Accepts a signature created by signature pad in Json format
  *	Converts it to an image resource
  *	The image resource can then be changed into png, jpg whatever PHP GD supports
@@ -28,17 +113,23 @@ class SignaturePadToImage {
  *		penWidth => int
  *		penColour => array(red, green, blue)
  *
- *	@return	object
+ *	@return	resource an image resource identifier on success, NULL on errors.
  */
-	function sigJsonToImage($json, $options = array())
-	{
+	public function sigJsonToImage($json, $options = array()) {
 		$defaultOptions = array(
-			'imageSize' => array(198, 55)
-			,'bgColour' => array(0xff, 0xff, 0xff)
-			,'penWidth' => 2
-			,'penColour' => array(0x14, 0x53, 0x94)
-			,'drawMultiplier'=> 12
+			'autoSize' => $this->autoSize,
+			'imageSize' => array( $this->imageWidth, $this->imageHeight ),
+			'bgColour' => $this->bgColour,
+			'penWidth' => $this->penWidth,
+			'penColour' => $this->penColour,
+			'drawMultiplier'=> $this->drawMultiplier,
 		);
+
+		// check for autoSize and don't override $options['imageSize']
+		if ( $defaultOptions['autoSize'] && !isset( $options['imageSize'] ) ) {
+			// do autoSize
+			$options['imageSize'] = array_values( $this->getSizeFromSignatureData( $json ) );
+		}
 
 		$options = array_merge($defaultOptions, $options);
 
@@ -54,11 +145,17 @@ class SignaturePadToImage {
 			$this->drawThickLine($img, $v->lx * $options['drawMultiplier'], $v->ly * $options['drawMultiplier'], $v->mx * $options['drawMultiplier'], $v->my * $options['drawMultiplier'], $pen, $options['penWidth'] * ($options['drawMultiplier'] / 2));
 
 		$imgDest = imagecreatetruecolor($options['imageSize'][0], $options['imageSize'][1]);
-		imagecopyresampled($imgDest, $img, 0, 0, 0, 0, $options['imageSize'][0], $options['imageSize'][0], $options['imageSize'][0] * $options['drawMultiplier'], $options['imageSize'][0] * $options['drawMultiplier']);
+		$isResized = imagecopyresampled($imgDest, $img, 0, 0, 0, 0, $options['imageSize'][0], $options['imageSize'][0], $options['imageSize'][0] * $options['drawMultiplier'], $options['imageSize'][0] * $options['drawMultiplier']);
 
 		imagedestroy($img);
 
-		return $imgDest;
+		if ( $isResized ) {
+			$this->image = $imgDest;
+		} else {
+			$this->image = NULL;
+		}
+
+		return $this->image;
 	}
 
 /**
@@ -75,8 +172,7 @@ class SignaturePadToImage {
  *
  *	@return	void
  */
-	function drawThickLine($img, $startX, $startY, $endX, $endY, $colour, $thickness)
-	{
+	private function drawThickLine($img, $startX, $startY, $endX, $endY, $colour, $thickness) {
 		$angle = (atan2(($startY - $endY), ($endX - $startX)));
 
 		$dist_x = $thickness * (sin($angle));
@@ -93,6 +189,72 @@ class SignaturePadToImage {
 
 		$array = array(0=>$p1x, $p1y, $p2x, $p2y, $p3x, $p3y, $p4x, $p4y);
 		imagefilledpolygon($img, $array, (count($array)/2), $colour);
+	}
+
+/**
+ * Get the created image
+ *
+ * @return resource an image resource identifier if set, NULL if no image set
+ */
+	public function getImage() {
+		return $this->image;
+	}
+
+/**
+ * Get the max width and height from Signature Pad signature data.
+ *
+ * @param array $signatureData Signature Pad signature data
+ * @return array with keys 'width' and 'height', boolean FALSE if failure
+ */
+	protected function getSizeFromSignatureData( &$signatureData ) {
+		$rval = FALSE;
+
+		if ( is_string( $signatureData ) ) {
+			$signatureData = json_decode( stripslashes( $signatureData ) );
+		}
+
+		if ( is_array( $signatureData ) ) {
+			$rval = array( 'width'  => 0, 'height' => 0 );
+			// cycle through and find max
+			foreach ( $signatureData as &$v ) {
+				$maxX = max( array( $v->lx, $v->mx ) );
+				if ( $maxX > $rval['width'] ) {
+					$rval['width'] = $maxX;
+				}
+				$maxY = max( array( $v->ly, $v->my ) );
+				if ( $maxY > $rval['height'] ) {
+					$rval['height'] = $maxY;
+				}
+			}
+		}
+
+		return $rval;
+	}
+
+/**
+ * Output image using imagepng()
+ *
+ * @param filename string [optional] <p>
+ * 	The path to save the file to. If not set or NULL, the raw image
+ * 	stream will be outputted directly.
+ * </p>
+ * @param quality int [optional] <p>
+ * 	Compression level: from 0 (no compression) to 9.
+ * </p>
+ * @param filters int [optional] <p>
+ * 	Allows reducing the PNG file size. It is a bitmask field which may be
+ * 	set to any combination of the PNG_FILTER_XXX constants. PNG_NO_FILTER or PNG_ALL_FILTERS may also be
+ * 	used to respectively disable or activate all filters.
+ * </p>
+ * @return bool Returns TRUE on success or FALSE on failure.
+ */
+	public function outputImage( $filename = null, $quality = null, $filters = null ) {
+		$isOutput = FALSE;
+		if ( $this->image ) {
+			header('Content-Type: image/png');
+			$isOutput = imagepng( $this->image, $filename, $quality, $filters );
+		}
+		return $isOutput;
 	}
 
 }
