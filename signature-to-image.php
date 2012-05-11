@@ -73,6 +73,26 @@ class SignaturePadToImage {
 	public $penWidth = 2;
 
 /**
+ * Sets options on construct.
+ *
+ * @param array $options An array of optional key => val.
+ * 	autoSize,
+ * 	bgColour,
+ * 	drawMulitplier,
+ * 	imageHeight,
+ * 	imageWidth,
+ * 	penColour,
+ * 	penWidth
+ */
+	public function __construct( $options ) {
+		foreach ( $options as $k => $v ) {
+			if ( isset( $this->{$k} ) ) {
+				$this->{$k} = $v;
+			}
+		}
+	}
+
+/**
  *	Accepts a signature created by signature pad in Json format
  *	Converts it to an image resource
  *	The image resource can then be changed into png, jpg whatever PHP GD supports
