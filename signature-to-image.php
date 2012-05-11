@@ -142,4 +142,35 @@ class SignaturePadToImage {
 		imagefilledpolygon($img, $array, (count($array)/2), $colour);
 	}
 
+/**
+ * Get the max width and height from Signature Pad signature data.
+ *
+ * @param array $signatureData Signature Pad signature data
+ * @return array with keys 'width' and 'height', boolean FALSE if failure
+ */
+	protected function getSizeFromSignatureData( &$signatureData ) {
+		$rval = FALSE;
+
+		if ( is_string( $signatureData ) ) {
+			$signatureData = json_decode( stripslashes( $signatureData ) );
+		}
+
+		if ( is_array( $signatureData ) ) {
+			$rval = array( 'width'  => 0, 'height' => 0 );
+			// cycle through and find max
+			foreach ( $signatureData as &$v ) {
+				$maxX = max( array( $v->lx, $v->mx ) );
+				if ( $maxX > $rval['width'] ) {
+					$rval['width'] = $maxX;
+				}
+				$maxY = max( array( $v->ly, $v->my ) );
+				if ( $maxY > $rval['height'] ) {
+					$rval['height'] = $maxY;
+				}
+			}
+		}
+
+		return $rval;
+	}
+
 }
