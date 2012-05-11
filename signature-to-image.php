@@ -15,12 +15,21 @@
 class SignaturePadToImage {
 
 /**
+ * Determine max width/height from Signature Pad signature data.
+ * Defaults to false.
+ *
+ * @var bool True finds max, false uses SignaturePadToImage::imageWidth and SignaturePadToImage::imageHeight
+ * @see SignaturePadToImage::getSizeFromSignatureData()
+ */
+	public $autoSize = FALSE;
+
+/**
  * The colour fill for the background of the image.
  * Defaults to array( 0xff, 0xff, 0xff )
  *
  * @var array hex red, hex green, hex blue
  */
-	public $bgColour = array (0xff, 0xff, 0xff );
+	public $bgColour = array( 0xff, 0xff, 0xff );
 
 /**
  * Multiplier for internal image size, helps create nice antialiased return image
@@ -81,12 +90,19 @@ class SignaturePadToImage {
  */
 	public function sigJsonToImage($json, $options = array()) {
 		$defaultOptions = array(
+			'autoSize' => $this->autoSize,
 			'imageSize' => array( $this->imageWidth, $this->imageHeight ),
 			'bgColour' => $this->bgColour,
 			'penWidth' => $this->penWidth,
 			'penColour' => $this->penColour,
 			'drawMultiplier'=> $this->drawMultiplier,
 		);
+
+		// check for autoSize and don't override $options['imageSize']
+		if ( $defaultOptions['autoSize'] && !isset( $options['imageSize'] ) ) {
+			// do autoSize
+			$options['imageSize'] = array_values( $this->getSizeFromSignatureData( $json ) );
+		}
 
 		$options = array_merge($defaultOptions, $options);
 
