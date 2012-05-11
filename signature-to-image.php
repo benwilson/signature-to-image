@@ -24,6 +24,13 @@ class SignaturePadToImage {
 	public $autoSize = FALSE;
 
 /**
+ * Last successfully created image or NULL if create failed
+ *
+ * @var resource an image resource
+ */
+	private $image = NULL;
+
+/**
  * The colour fill for the background of the image.
  * Defaults to array( 0xff, 0xff, 0xff )
  *
@@ -106,7 +113,7 @@ class SignaturePadToImage {
  *		penWidth => int
  *		penColour => array(red, green, blue)
  *
- *	@return	object
+ *	@return	resource an image resource identifier on success, NULL on errors.
  */
 	public function sigJsonToImage($json, $options = array()) {
 		$defaultOptions = array(
@@ -138,11 +145,17 @@ class SignaturePadToImage {
 			$this->drawThickLine($img, $v->lx * $options['drawMultiplier'], $v->ly * $options['drawMultiplier'], $v->mx * $options['drawMultiplier'], $v->my * $options['drawMultiplier'], $pen, $options['penWidth'] * ($options['drawMultiplier'] / 2));
 
 		$imgDest = imagecreatetruecolor($options['imageSize'][0], $options['imageSize'][1]);
-		imagecopyresampled($imgDest, $img, 0, 0, 0, 0, $options['imageSize'][0], $options['imageSize'][0], $options['imageSize'][0] * $options['drawMultiplier'], $options['imageSize'][0] * $options['drawMultiplier']);
+		$isResized = imagecopyresampled($imgDest, $img, 0, 0, 0, 0, $options['imageSize'][0], $options['imageSize'][0], $options['imageSize'][0] * $options['drawMultiplier'], $options['imageSize'][0] * $options['drawMultiplier']);
 
 		imagedestroy($img);
 
-		return $imgDest;
+		if ( $isResized ) {
+			$this->image = $imgDest;
+		} else {
+			$this->image = NULL;
+		}
+
+		return $this->image;
 	}
 
 /**
