@@ -192,6 +192,15 @@ class SignaturePadToImage {
 	}
 
 /**
+ * Get the created image
+ *
+ * @return resource an image resource identifier if set, NULL if no image set
+ */
+	public function getImage() {
+		return $this->image;
+	}
+
+/**
  * Get the max width and height from Signature Pad signature data.
  *
  * @param array $signatureData Signature Pad signature data
