@@ -251,7 +251,10 @@ class SignaturePadToImage {
 	public function outputImage( $filename = null, $quality = null, $filters = null ) {
 		$isOutput = FALSE;
 		if ( $this->image ) {
-			header('Content-Type: image/png');
+			// saving to file? don't output to browser
+			if ( !$filename ) {
+				header('Content-Type: image/png');
+			}
 			$isOutput = imagepng( $this->image, $filename, $quality, $filters );
 		}
 		return $isOutput;
